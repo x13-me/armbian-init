@@ -20,7 +20,7 @@ this is run blindly outside of any function, we don't like this
 
 called on [L#765](./original_armbian-firstlogin#L765) trapping SIG INT
 
-- - This is run *immediately* upon hitting Ctrl-C
+- - This is run _immediately_ upon hitting Ctrl-C
 - - Probably undesirable in init
 - notify user about cancellation
 - remove config
@@ -70,20 +70,20 @@ called on [L#636](./original_armbian-firstlogin#L636)
 - test if change settings, do nothing if not
 - get name of first ethernet
 - get name of first wifi
-- - this is *probably* bad?
-- - we want to configure *all* adapters
+- - this is _probably_ bad?
+- - we want to configure _all_ adapters
 - set config name -{dhcp|static}
 - check network device actually exists
 - if wifi config enabled create wifi config
 - elif eth config enabled create eth config
-- - we want to offer config for *all* network adapters
+- - we want to offer config for _all_ network adapters
 
 ### `get_local_ip_addr`
 
 called on [L#143](./original_armbian-firstlogin#L143)
 
 - try get local IP using:
-`ip -4 addr show scope global | grep inet | awk '{print $2}' | cut -d/ -f1 | awk '{$1=$1}1' FS='\n' OFS=',' RS=`
+  `ip -4 addr show scope global | grep inet | awk '{print $2}' | cut -d/ -f1 | awk '{$1=$1}1' FS='\n' OFS=',' RS=`
 - - can probably be used verbatim, though there's probably a more reliable way - this should be investigated
 
 ### `read_password`
@@ -98,7 +98,7 @@ called on:
 - set `prompt`
 
 - enable input echo
-- - why is unclear, we *don't* want this?
+- - why is unclear, we _don't_ want this?
 - nonsense to handle backspace
 - - we should call `passwd` interactively, and not store sensitive data
 
@@ -144,15 +144,27 @@ called on [L#776](./original_armbian-firstlogin#L776)
   - notify user of detected timezone
   - set `response` var to Y
 - otherwise set `response` to `SET_LANG_BASED_ON_LOCATION`
-- check if `response` is *no*
+- check if `response` is _no_
   - unset `CCODE` and `TZDATA`
 - - all of this should be skipped if it's not supposed to be set
 - - the following can be replaced with a single call to configng
 - get locales
 - check `PRESET_LOCALE` is unset
-  - prompt user to select from list of possible locales, unsorted
+  - prompt user to select from list of possible locales
   - - surely there's an interactive?
-
+- sets `LOCALES` to a single value
+- check for `*Skip*` in `LOCALES`
+  - if `PRESET_TIMEZONE` unset, prompt to `tzselect`
+  - - we can still hook tzselect, or configng
+  - if set, set `TZDATA`
+  - set timezone
+  - reconfigure dpkg for new timezone
+  - change default loacle
+  - generate locales
+  - set detected locale environment variables
+  - - only set in `.{bash,xsession}rc`, not `.zshrc`
+  - - we should probably set this through `/etc/profile`
+  - - see `man profile`
 
 ### `add_profile_sync_settings`
 
@@ -172,7 +184,11 @@ never called.
 - enable `psd.service`
 - start `psd.service`
 
+> implementation note: this should probably be handled by `/etc/profile` and not firstboot, it is necessary to perform for each new user
+
 ### `add_user`
+
+> menu's note: i don't want to scream-test any of this, but i'm unsure if it's all actually _necessary_, so it'll probably get poorly reimplemented
 
 ### process config
 
