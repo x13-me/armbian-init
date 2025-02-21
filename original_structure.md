@@ -188,6 +188,83 @@ never called.
 
 ### `add_user`
 
+- define repeats=3
+- if config file exists
+  - if username not preset
+    - prompt for `username`
+  - if username not preset
+    - read `username` from stdin
+  - else set `username` to preset
+  - test for illegal chars in username, return if any
+  - set `RealUserName` to `username` - only alphanumeric chars, all lowercase
+  - if `RealUserName` is unset return
+  - if `RealUserName` exists throw error
+- if config file exists
+  - if password not preset
+    - call `read_password`
+    - echo blank line
+  - else set `password` to preset
+  - set `first_input` to `password`
+  - if password not preset
+    - call `read_password` *again*
+    - echo blank line
+  - set `second_input` to `password`
+  - if `first_input` equals `second_input`
+    - if `cracklib-check` is present
+      - set `result` to `cracklib-check` check on `password`
+      - set `okay` to parsed output
+      - if `okay` not "OK" warn of weak password
+    - if realname not preset
+      - echo blank line
+      - prompt for `RealName`
+    - else set `RealName` to preset
+    - call `adduser` to create new user
+    - if ssh key preset
+      - create `~/.ssh/`
+      - curl `PRESET_ROOT_KEY` to created user's home dir
+      - change ownership of `~/.ssh` to created user
+    - if `first_input` nonzero
+      - echo `first_input` and `second_input` to `passwd`
+    - else delete password for created user
+    - add user to groups:
+      - `sudo`
+      - `netdev`
+      - `audio`
+      - `video`
+      - `disk`
+      - `tty`
+      - `users`
+      - `games`
+      - `dialout`
+      - `plugdev`
+      - `input`
+      - `bluetooth`
+      - `systemd-journal`
+      - `ssh`
+      - `render`
+    - create `~/.Xauthority`
+    - `chown` `~/Xauthority`
+    - ##L605
+    - if `RealName` is zero-len set `RealName` to `RealUserName`
+    - notify user of account creation and details
+    - delete config file
+    - make `/etc/update-motd.d/*/ executable
+    - if `psd` (Profile Sync Daemon) is present
+      - add `psd-overlay-helper` to `/etc/sudoers` with `NOPASSWD`
+      - touch `~/.activate_psd`
+      - `chown` `~/.activate_psd`
+    - **BREAK**
+  - elif `password` non-zero
+    - warn user passwords do not match
+    - reduce `REPEATS` by 1
+  if `REPEATS` is zero `logout`
+
+- if config file exists
+
+> EXPLICIT note: what the fuck? why are we testing if the file exists four times in the same script? this is no bueno
+
+> implementation note: config should be loaded in, a bool *could* be used, but it's likely unnecessary
+
 > menu's note: i don't want to scream-test any of this, but i'm unsure if it's all actually _necessary_, so it'll probably get poorly reimplemented
 
 ### process config
