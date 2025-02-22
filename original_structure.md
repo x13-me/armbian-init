@@ -206,7 +206,7 @@ never called.
   - else set `password` to preset
   - set `first_input` to `password`
   - if password not preset
-    - call `read_password` *again*
+    - call `read_password` _again_
     - echo blank line
   - set `second_input` to `password`
   - if `first_input` equals `second_input`
@@ -244,7 +244,9 @@ never called.
       - `render`
     - create `~/.Xauthority`
     - `chown` `~/Xauthority`
-    - ##L605
+    - ##L605 -- [menu's note: haven't parsed this yet]
+    - get `RealName` from `/etc/passwd` `RealUserName` entry
+    - ##L605 -- [menu's note: possibly parsed, unsure? seeking clarification]
     - if `RealName` is zero-len set `RealName` to `RealUserName`
     - notify user of account creation and details
     - delete config file
@@ -261,15 +263,52 @@ never called.
 
 - if config file exists
 
-> EXPLICIT note: what the fuck? why are we testing if the file exists four times in the same script? this is no bueno
-
-> implementation note: config should be loaded in, a bool *could* be used, but it's likely unnecessary
-
-> menu's note: i don't want to scream-test any of this, but i'm unsure if it's all actually _necessary_, so it'll probably get poorly reimplemented
+>> ##EXPLICIT note: what the fuck? why are we testing if the file exists four times in the same script? this is no bueno
+> implementation note: config should be loaded in, a bool _could_ be used, but it's likely unnecessary
+>> menu's note: i don't want to scream-test any of this, but i'm unsure if it's all actually _necessary_, so it'll probably get poorly reimplemented
 
 ### process config
 
-- test if config exists and we're in a tty
-
-- source config
-- - this is dangerous, we don't want to do this
+- if config exists AND we're in a tty
+  - source config
+  > implementation note: this is dangerous, we don't want to do this
+  - if `PRESET_CONFIGURATION` is set
+    - curl `PRESET_CONFIGURATION` to config location
+    > implementation note: this does not allow for split-config
+  - call `do_firstrun_automated_network_config`
+  - remove getty `override.conf`
+  - remove serial-getty `override.conf`
+  - reload systemd
+  > menu's note: this... doesn't seem great
+  - set `desktop_dm` to `none`
+  - set `desktop_is_sddm`, `desktop_is_lightdm`, `desktop_is_gdm3` to `0`
+  - if `/usr/sbin/sddm` exists
+    - set `desktop_dm` to `sddm`
+    - set `desktop_is_sddm` to `1`
+  - if `/usr/sbin/lightdm` exists
+    - set `desktop_dm` to `lightdm`
+    - set `desktop_is_lightdm` to `1`
+  - if `/usr/sbin/gdm3` exists
+    - set `desktop_dm` to `gdm3`
+    - set `desktop_is_gdm3` to `1`
+  > implementation note: this should probably be case/switch, to ensure no undefined state
+  - notify user we're waiting for system to finish booting
+  - _actually_ wait for boot to finish
+  - if framebuffer width is greater than 1920
+    - if `/etc/lightdm/slick-greeter.conf` exists
+      - append `enable-hidpi = on`
+    - if `/etc/skel/.config/xfce4/xfconf/xfce-perchannel-xml/xsettings.xml` exists
+      - set `WindowScalingFactor` to `2`
+    - set font to `/usr/share/consolefonts/Uni3-TerminusBold32x16.psf.gz`
+  - clear screen
+  - if `VENDORPRETTYNAME` is set, set `VENDOR` to it
+  - welcome user
+  - echo blank line
+  - call `get_local_ip_addr`
+  - if `PRESET_ROOT_PASSWORD` not set, echo empty line
+  - trap `SIGINT` with no-op
+  - set `REPEATS` to `3`
+  - if config file exists
+    - source config
+    > ##Explicit note: again, what the fuck? why are we source the config _again_?
+    
