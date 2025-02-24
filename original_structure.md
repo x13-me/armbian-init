@@ -244,9 +244,7 @@ never called.
       - `render`
     - create `~/.Xauthority`
     - `chown` `~/Xauthority`
-    - ##L605 -- [menu's note: haven't parsed this yet]
     - get `RealName` from `/etc/passwd` `RealUserName` entry
-    - ##L605 -- [menu's note: possibly parsed, unsure? seeking clarification]
     - if `RealName` is zero-len set `RealName` to `RealUserName`
     - notify user of account creation and details
     - delete config file
@@ -306,9 +304,76 @@ never called.
   - echo blank line
   - call `get_local_ip_addr`
   - if `PRESET_ROOT_PASSWORD` not set, echo empty line
-  - trap `SIGINT` with no-op
+  - trap SIG `INT` with no-op
   - set `REPEATS` to `3`
-  - if config file exists
+  - _while_ config file exists
     - source config
     > ##Explicit note: again, what the fuck? why are we source the config _again_?
-    
+    - if `PRESET_ROOT_PASSWORD` not set
+      - call `read_password` to prompt user to create password
+    - else
+      - set `password` to `PRESET_ROOT_PASSWORD`
+      - if `PRESET_ROOT_KEY` set
+        - create `/root/.ssh`
+        - curl `PRESET_ROOT_KEY` to `/root/.ssh/authorized_keys`
+    - set `loginfrom` to current terminal
+    - kill all root terminals NOT in `loginfrom`
+    - set `first_input` to `password`
+    - if `PRESET_ROOT_PASSWORD` not set
+      - echo blank line
+      - call `read_password`
+      - echo blank line
+    - else
+      - set `password` to `PRESET_ROOT_PASSWORD`
+    - set `second_input` to `password`
+    - if `first_input` equals `second_input`
+      - if `cracklib-check` present
+        - set `result` to `cracklib-check` check on `password`
+        - set `okay` to parsed output
+          - if `okay` not "OK" warn of weak password
+      - echo `first_input` and `second_input` to `passwd` for `root`
+    - else if `password` nonzero
+      - warn user passwords do not match
+      - reduce `REPEATS` by `1`
+    - if `REPEATS` equals `0` exit
+  - reset trap `INT`, `TERM`, `EXIT`
+  - if `IMAGE_TYPE` not `nightly`
+    - if `BRANCH` is `edge`
+      - echo _community support (edge kernel)_
+    - else if `DISTRIBUTION_STATUS` not `supported`
+      - echo _community support (unsupported userspace)_
+    - else if `BOARD_TYPE` not `conf`
+      - echo _community support (looking for maintainer)_
+  - else
+    - echo _nightly warning_
+  - trap SIG `INT` with no-op
+  - call `set_shell`
+  - reset trap `INT`, `TERM`, `EXIT`
+  - trap `INT` with call `check_abort`
+  - while config file exists
+    - if `PRESET_USER_NAME` not set
+      - echo _creating new account..._
+    - if `desktop_dm` set
+      - echo _no DE warning_
+    call `add_user`
+  - reset trap `INT`, `TERM`, `EXIT`
+  - trap SIG `INT` with no-op
+  - call `set_timezone_and_locales`
+  - reset trap `INT`, `TERM`, `EXIT`
+  - if `USER_SHELL` is `zsh`
+    - echo _relog to use zsh_
+  - sed `/etc/ssh/sshd_config` to `AcceptEnv LANG`
+  - restart sshd
+  - if `desktop_dm` is `lightdm` and `RealName` set
+    - mkdir `/etc/lightdm/lightdm.conf.d`
+    - write to `/etc/lightdm/lightdm.conf.d/22-armbian-autologin.conf`:
+
+    ```conf
+    [Seat:*]
+    autologin-user=$RealUserName
+    autologin-user-timeout=0
+    user-session=xfce
+    ```
+    > menu's note: there's a TODO here
+  - 
+
